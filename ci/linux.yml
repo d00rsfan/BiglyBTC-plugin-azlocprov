@@ -1,0 +1,41 @@
+name: Linux native location provider
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  module:
+    # Provisioned compiler/dependency runner; never run untrusted PRs here.
+    runs-on: [self-hosted, Linux, X64, biglybtc-linux]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: plugin
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: d00rsfan/BiglyBTC
+          ref: '8ff37cf27c1d1de6358b8e5e70d42fc1316c30f4'
+          path: host
+          persist-credentials: false
+      - name: Build fixed SDK and plugin, replay offline file compatibility
+        shell: bash
+        run: |
+          cmake -S host/plugin-sdk -B "$RUNNER_TEMP/biglybtc-sdk" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-16 -DCMAKE_C_COMPILER=gcc-16 -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/biglybtc-sdk-prefix"
+          nice -n 5 cmake --build "$RUNNER_TEMP/biglybtc-sdk" -j2
+          ctest --test-dir "$RUNNER_TEMP/biglybtc-sdk" --output-on-failure
+          cmake --install "$RUNNER_TEMP/biglybtc-sdk"
+          python3 plugin/tests/fetch_fixture.py "$RUNNER_TEMP/biglybtc-data/GeoIP2-Country-Test.mmdb"
+          cmake -S plugin -B "$RUNNER_TEMP/biglybtc-plugin" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-16 -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/biglybtc-sdk-prefix" -DBIGLYBTC_MMDB_FIXTURE="$RUNNER_TEMP/biglybtc-data/GeoIP2-Country-Test.mmdb"
+          nice -n 5 cmake --build "$RUNNER_TEMP/biglybtc-plugin" -j2
+          ctest --test-dir "$RUNNER_TEMP/biglybtc-plugin" --output-on-failure
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: experimental-location-provider-linux-amd64
+          path: |
+            ${{ runner.temp }}/biglybtc-plugin/BiglyBTC-plugin-azlocprov.so
+            ${{ runner.temp }}/biglybtc-plugin/CMakeCache.txt
+            plugin/LICENSE
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,19 @@
+{
+  "repository": "https://github.com/d00rsfan/BiglyBTC-plugin-azlocprov",
+  "local_review_commit": "7c7d5e82e26bf9e35e3fbcbc8b8f20498e4d78dd",
+  "original_biglybt_commit": "cb8c6cb9bb97916cbc7e80338a017200ffc3e71f",
+  "sdk_commit": "8ff37cf27c1d1de6358b8e5e70d42fc1316c30f4",
+  "ci_enabled": false,
+  "scope": "location development source foundation only; no binary/catalogue release or full application/plugin parity claim",
+  "files_sha256": {
+    ".gitignore": "862263fa1f46c20f0d1e4dac5ffcc75abd55c08211b2c3864c5f8764b9d87793",
+    "CMakeLists.txt": "f1d0d7b40f32d9d92854faf9df5783467a94c77cf94094bc7d145a105f4db78b",
+    "LICENSE": "db296f2f7f35bca3a174efb0eb392b3b17bd94b341851429a3dff411b1c2fc73",
+    "README.md": "926107b6f94a09d1015be25a8ecfd69768c7ce66acb0c98af91c05583bfb5511",
+    "location.cpp": "d5d1cb15640d85a847ced90206a8ef2c296baa10833591c2c40efe581f6d391f",
+    "tests/compatibility.py": "37cb327d1bec33d0fd05fb1cfe2e7a31d612f504bc9492929a2c7a22e4ed5bae",
+    "tests/driver.cpp": "2bc3fc76f3137abe806aa10123a5592e21656f9cc534f9494301b945bbd43a04",
+    "tests/fetch_fixture.py": "e1992d43ff9623ccd07469738b7f9d807eef398368386b3a84445470e6b1df99",
+    "ci/linux.yml": "0cd4fe6402390499780eca55d944c5619f0443fa781ddb1638a616f39db1e448"
+  }
+}
