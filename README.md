@@ -39,3 +39,11 @@ host discovery/UI, original Java dependency and broader locale/version edge-case
 qualification, native asset fallback when no Java resources exist, tag-example
 menus and production update trust remain pending. Do not use the development
 installer against a live profile. Binary release publication is not enabled.
+
+## Continuous integration
+
+The workflow is [`.github/workflows/linux.yml`](.github/workflows/linux.yml). [View runs](https://github.com/d00rsfan/BiglyBTC-plugin-azlocprov/actions).
+
+Start it manually from **Actions → Run workflow** (or `gh workflow run linux.yml -R d00rsfan/BiglyBTC-plugin-azlocprov`). It requires a separately provisioned Linux x64 runner with labels `self-hosted`, `Linux`, `X64`, and `biglybtc-linux`, plus the pinned toolchain and dependencies used by the recipe. Registering the workflow does not provision that runner; a run stays queued until a matching runner is online. It does not run on pull requests.
+
+For future workflow changes, push using this repository's SSH URL (`git@github.com:d00rsfan/BiglyBTC-plugin-azlocprov.git`). HTTPS pushes authenticated with an OAuth token require the additional `workflow` scope to add or update workflow files. Viewing public Actions runs does not require that scope.
