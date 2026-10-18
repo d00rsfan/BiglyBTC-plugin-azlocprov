@@ -9,12 +9,12 @@
     ".gitignore": "862263fa1f46c20f0d1e4dac5ffcc75abd55c08211b2c3864c5f8764b9d87793",
     "CMakeLists.txt": "f1d0d7b40f32d9d92854faf9df5783467a94c77cf94094bc7d145a105f4db78b",
     "LICENSE": "db296f2f7f35bca3a174efb0eb392b3b17bd94b341851429a3dff411b1c2fc73",
-    "README.md": "022e6052113611ba15082c9322a4c54f33317420275f698ee86e51eae083a47e",
+    "README.md": "0964e33548c14b74c194645f003d56fde2e6a0577daa8fa7ae8a1a0bf7ac8402",
     "location.cpp": "d5d1cb15640d85a847ced90206a8ef2c296baa10833591c2c40efe581f6d391f",
     "tests/compatibility.py": "37cb327d1bec33d0fd05fb1cfe2e7a31d612f504bc9492929a2c7a22e4ed5bae",
     "tests/driver.cpp": "2bc3fc76f3137abe806aa10123a5592e21656f9cc534f9494301b945bbd43a04",
     "tests/fetch_fixture.py": "e1992d43ff9623ccd07469738b7f9d807eef398368386b3a84445470e6b1df99",
-    ".github/workflows/linux.yml": "0cd4fe6402390499780eca55d944c5619f0443fa781ddb1638a616f39db1e448"
+    ".github/workflows/linux.yml": "2761296b0397be4e3f3a3a0a14b2f3058e29c9afecddeb9bc10f40817d699479"
   },
   "ci_activation": {
     "date": "2026-10-18",
@@ -24,5 +24,29 @@
     "runner": "self-hosted Linux X64 biglybtc-linux",
     "mode": "workflow_dispatch",
     "note": "Workflow registered; this manifest does not assert a successful remote run."
+  },
+  "hosted_ci": {
+    "runner": "ubuntu-26.04",
+    "architecture": "amd64",
+    "compiler_package": "16-20260322-1ubuntu1",
+    "lanes": [
+      "gcc-release"
+    ],
+    "source_and_fixture_bytes_unchanged": true,
+    "scope": "Hosted offline compatibility only; no release/full-plugin or additional distro qualification",
+    "apt_packages": [
+      "gcc-16=16-20260322-1ubuntu1",
+      "g++-16=16-20260322-1ubuntu1",
+      "libstdc++-16-dev=16-20260322-1ubuntu1",
+      "cmake=4.2.3-2ubuntu2",
+      "ninja-build=1.13.2-1",
+      "python3",
+      "pkg-config",
+      "libmaxminddb-dev=1.12.2-1build2",
+      "libarchive-dev=3.8.5-1ubuntu2.3",
+      "libarchive13t64=3.8.5-1ubuntu2.3",
+      "libicu-dev=78.2-2ubuntu1",
+      "libicu78=78.2-2ubuntu1"
+    ]
   }
 }

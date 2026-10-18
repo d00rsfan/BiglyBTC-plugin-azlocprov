@@ -1,13 +1,22 @@
 name: Linux native location provider
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   module:
-    # Provisioned compiler/dependency runner; never run untrusted PRs here.
-    runs-on: [self-hosted, Linux, X64, biglybtc-linux]
-    timeout-minutes: 20
+    runs-on: ubuntu-26.04
+    timeout-minutes: 25
+    env:
+      TMPDIR: /tmp
+      ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -19,23 +28,50 @@ jobs:
           ref: '8ff37cf27c1d1de6358b8e5e70d42fc1316c30f4'
           path: host
           persist-credentials: false
-      - name: Build fixed SDK and plugin, replay offline file compatibility
+      - name: Install pinned Ubuntu compiler and dependencies
         shell: bash
         run: |
-          cmake -S host/plugin-sdk -B "$RUNNER_TEMP/biglybtc-sdk" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-16 -DCMAKE_C_COMPILER=gcc-16 -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/biglybtc-sdk-prefix"
-          nice -n 5 cmake --build "$RUNNER_TEMP/biglybtc-sdk" -j2
-          ctest --test-dir "$RUNNER_TEMP/biglybtc-sdk" --output-on-failure
-          cmake --install "$RUNNER_TEMP/biglybtc-sdk"
-          python3 plugin/tests/fetch_fixture.py "$RUNNER_TEMP/biglybtc-data/GeoIP2-Country-Test.mmdb"
-          cmake -S plugin -B "$RUNNER_TEMP/biglybtc-plugin" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-16 -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/biglybtc-sdk-prefix" -DBIGLYBTC_MMDB_FIXTURE="$RUNNER_TEMP/biglybtc-data/GeoIP2-Country-Test.mmdb"
-          nice -n 5 cmake --build "$RUNNER_TEMP/biglybtc-plugin" -j2
-          ctest --test-dir "$RUNNER_TEMP/biglybtc-plugin" --output-on-failure
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            gcc-16=16-20260322-1ubuntu1 \
+            g++-16=16-20260322-1ubuntu1 \
+            libstdc++-16-dev=16-20260322-1ubuntu1 \
+            cmake=4.2.3-2ubuntu2 \
+            ninja-build=1.13.2-1 \
+            python3 \
+            pkg-config \
+            libmaxminddb-dev=1.12.2-1build2 \
+            libarchive-dev=3.8.5-1ubuntu2.3 \
+            libarchive13t64=3.8.5-1ubuntu2.3 \
+            libicu-dev=78.2-2ubuntu1 \
+            libicu78=78.2-2ubuntu1
+          /usr/bin/g++-16 --version
+          /usr/bin/cmake --version
+          dpkg-query -W > "$RUNNER_TEMP/biglybtc-packages.txt"
+      - name: Build fixed SDK and plugin, replay offline compatibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/cmake -S host/plugin-sdk -B "$RUNNER_TEMP/biglybtc-sdk" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++-16 -DCMAKE_C_COMPILER=/usr/bin/gcc-16 -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/biglybtc-sdk-prefix"
+          nice -n 5 /usr/bin/cmake --build "$RUNNER_TEMP/biglybtc-sdk" -j2
+          /usr/bin/ctest --test-dir "$RUNNER_TEMP/biglybtc-sdk" --output-on-failure
+          /usr/bin/cmake --install "$RUNNER_TEMP/biglybtc-sdk"
+          /usr/bin/python3 plugin/tests/fetch_fixture.py "$RUNNER_TEMP/biglybtc-data/GeoIP2-Country-Test.mmdb"
+          /usr/bin/cmake -S plugin -B "$RUNNER_TEMP/biglybtc-plugin" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++-16 -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/biglybtc-sdk-prefix" -DBIGLYBTC_MMDB_FIXTURE="$RUNNER_TEMP/biglybtc-data/GeoIP2-Country-Test.mmdb"
+          nice -n 5 /usr/bin/cmake --build "$RUNNER_TEMP/biglybtc-plugin" -j2
+          /usr/bin/ctest --test-dir "$RUNNER_TEMP/biglybtc-plugin" --output-on-failure
+      - name: Preserve build and test evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: experimental-location-provider-linux-amd64
+          name: experimental-location-provider-ubuntu-26.04-amd64
           path: |
             ${{ runner.temp }}/biglybtc-plugin/BiglyBTC-plugin-azlocprov.so
             ${{ runner.temp }}/biglybtc-plugin/CMakeCache.txt
+            ${{ runner.temp }}/biglybtc-plugin/Testing/Temporary
+            ${{ runner.temp }}/biglybtc-sdk/Testing/Temporary
+            ${{ runner.temp }}/biglybtc-packages.txt
             plugin/LICENSE
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 7

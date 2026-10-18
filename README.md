@@ -44,6 +44,6 @@ installer against a live profile. Binary release publication is not enabled.
 
 The workflow is [`.github/workflows/linux.yml`](.github/workflows/linux.yml). [View runs](https://github.com/d00rsfan/BiglyBTC-plugin-azlocprov/actions).
 
-Start it manually from **Actions → Run workflow** (or `gh workflow run linux.yml -R d00rsfan/BiglyBTC-plugin-azlocprov`). It requires a separately provisioned Linux x64 runner with labels `self-hosted`, `Linux`, `X64`, and `biglybtc-linux`, plus the pinned toolchain and dependencies used by the recipe. Registering the workflow does not provision that runner; a run stays queued until a matching runner is online. It does not run on pull requests.
+The workflow runs on GitHub-hosted `ubuntu-26.04` amd64 runners on pushes, pull requests, and manual dispatch. It installs the exact GCC16/libstdc++16 snapshot and pinned Ubuntu dependency packages declared in the workflow; no separately provisioned runner is needed. It checks the SDK/module and pinned synthetic MaxMind file compatibility. Build/test logs and installed package versions are retained as workflow artifacts. This CI does not publish a release or qualify other distributions.
 
 For future workflow changes, push using this repository's SSH URL (`git@github.com:d00rsfan/BiglyBTC-plugin-azlocprov.git`). HTTPS pushes authenticated with an OAuth token require the additional `workflow` scope to add or update workflow files. Viewing public Actions runs does not require that scope.
