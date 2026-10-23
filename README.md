@@ -14,6 +14,24 @@ or `azlocprov.jar` resources. It never extracts or executes the Java JAR and nev
 writes original files. Localized country display names come from a host callback;
 database English is the fallback. Native release and Java plugin versions differ.
 
+Two additive opt-in operations support hosts that must distinguish unavailable
+geography from a usable database with no matching country. Existing
+`BT_LOCATION_LOOKUP` and `BT_LOCATION_FLAG` layouts and behavior are unchanged.
+`BT_LOCATION_DATABASE_STATUS` (`0x1003`) returns `BT_OK` with `available=1` only
+while the bound database remains usable; unavailable data returns `BT_NOT_FOUND`
+with `available=0`. `BT_LOCATION_LOOKUP_CHECKED` (`0x1004`) returns `BT_IO` for
+unavailable/unusable data and `BT_NOT_FOUND` for a usable lookup without a country.
+Both operations require the current additive SDK header; the ABI and native
+version remain 1 and 0.1.0 respectively.
+
+The strict operations require an owned private database directory and a nonempty
+owned regular database with one link, no group/world write permission, a 256 MiB
+bound and stable inode/metadata. Readiness is checked rather than inferred from
+an old successful lookup. Replace data atomically and rebind after installing a
+previously missing database. No database is bundled, discovered or downloaded by
+these operations. Hosts authenticate native module code before loading it and
+provide the explicit data directory; this module is not a native-code sandbox.
+
 Build/install the shared SDK from `d00rsfan/BiglyBTC` first. Dependencies are a
 C++23 compiler, CMake>=3.25, libmaxminddb>=1.12.2 and libarchive>=3.8. Tests additionally
 use ICU>=78.2 as a host locale service. Qt is not a module dependency.
@@ -45,5 +63,7 @@ installer against a live profile. Binary release publication is not enabled.
 The workflow is [`.github/workflows/linux.yml`](.github/workflows/linux.yml). [View runs](https://github.com/d00rsfan/BiglyBTC-plugin-azlocprov/actions).
 
 The workflow runs on GitHub-hosted `ubuntu-26.04` amd64 runners on pushes, pull requests, and manual dispatch. It installs the exact GCC16/libstdc++16 snapshot and pinned Ubuntu dependency packages declared in the workflow; no separately provisioned runner is needed. It checks the SDK/module and pinned synthetic MaxMind file compatibility. Build/test logs and installed package versions are retained as workflow artifacts. This CI does not publish a release or qualify other distributions.
+
+The workflow pins SDK commit `5ea3fb7391a3e5df107754b5bba95492f19efd1b`; its [SDK contract run](https://github.com/d00rsfan/BiglyBTC/actions/runs/40010131879) passed. The host's GCC qualification covered 24 unique Statistics suites, including Country provider, binding, observed-byte and worker tests. This update does not claim a successful standalone run; its result is available on the Actions page above.
 
 For future workflow changes, push using this repository's SSH URL (`git@github.com:d00rsfan/BiglyBTC-plugin-azlocprov.git`). HTTPS pushes authenticated with an OAuth token require the additional `workflow` scope to add or update workflow files. Viewing public Actions runs does not require that scope.

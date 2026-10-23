@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: d00rsfan/BiglyBTC
-          ref: '8ff37cf27c1d1de6358b8e5e70d42fc1316c30f4'
+          ref: '5ea3fb7391a3e5df107754b5bba95492f19efd1b'
           path: host
           persist-credentials: false
       - name: Install pinned Ubuntu compiler and dependencies

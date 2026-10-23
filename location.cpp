@@ -69,6 +69,8 @@ struct Provider {
   bool opened = false;
   MMDB_s database{};
   int databaseFd = -1;
+  struct stat databaseIdentity{};
+  bool databaseIdentityKnown = false;
   void* hostContext = nullptr;
   bt_country_name_fn countryName = nullptr;
   explicit Provider(int fd, std::string version) : directory(fd), javaVersion(std::move(version)) {}
@@ -84,7 +86,9 @@ struct Provider {
     if (MMDB_open(path.c_str(), MMDB_MODE_MMAP, &candidate) != MMDB_SUCCESS) {
       ::close(file); return false;
     }
-    database = candidate; databaseFd = file; opened = true; return true;
+    database = candidate; databaseFd = file; opened = true;
+    databaseIdentityKnown = ::fstat(file, &databaseIdentity) == 0;
+    return true;
   }
   bool ensureDatabase() {
     if (!attempted) {
@@ -94,11 +98,29 @@ struct Provider {
     }
     return opened;
   }
-  bt_status lookup(const bt_location_request_v1& request, bt_location_result_v1& result) {
+  // Strict availability is opt-in. Legacy lookup keeps its original rules.
+  bool databaseReady() {
+    struct stat directoryInfo{};
+    if (::fstat(directory.value, &directoryInfo) != 0 || !S_ISDIR(directoryInfo.st_mode)
+        || directoryInfo.st_uid != ::geteuid() || (directoryInfo.st_mode & 0077) != 0
+        || directoryInfo.st_nlink == 0 || !ensureDatabase() || !databaseIdentityKnown) { return false; }
+    struct stat current{};
+    if (::fstat(databaseFd, &current) != 0 || !S_ISREG(current.st_mode)
+        || current.st_uid != ::geteuid() || current.st_nlink != 1 || (current.st_mode & 0022) != 0
+        || current.st_size <= 0 || current.st_size > 256 * 1024 * 1024) { return false; }
+    return current.st_dev == databaseIdentity.st_dev && current.st_ino == databaseIdentity.st_ino
+        && current.st_uid == databaseIdentity.st_uid && current.st_mode == databaseIdentity.st_mode
+        && current.st_nlink == databaseIdentity.st_nlink && current.st_size == databaseIdentity.st_size
+        && current.st_mtim.tv_sec == databaseIdentity.st_mtim.tv_sec
+        && current.st_mtim.tv_nsec == databaseIdentity.st_mtim.tv_nsec
+        && current.st_ctim.tv_sec == databaseIdentity.st_ctim.tv_sec
+        && current.st_ctim.tv_nsec == databaseIdentity.st_ctim.tv_nsec;
+  }
+  bt_status lookup(const bt_location_request_v1& request, bt_location_result_v1& result, bool checked = false) {
     result = {};
     if ((request.family != 4 && request.family != 6)
         || !std::memchr(request.locale, 0, sizeof(request.locale))) { return BT_INVALID; }
-    if (!ensureDatabase()) { return BT_NOT_FOUND; }
+    if (!ensureDatabase()) { return checked ? BT_IO : BT_NOT_FOUND; }
     sockaddr_storage address{};
     if (request.family == 4) {
       auto* v4 = reinterpret_cast<sockaddr_in*>(&address);
@@ -109,15 +131,18 @@ struct Provider {
     }
     int error = 0;
     auto found = MMDB_lookup_sockaddr(&database, reinterpret_cast<sockaddr*>(&address), &error);
-    if (error != MMDB_SUCCESS || !found.found_entry) { return BT_NOT_FOUND; }
+    if (error != MMDB_SUCCESS) { return checked ? BT_IO : BT_NOT_FOUND; }
+    if (!found.found_entry) { return BT_NOT_FOUND; }
     MMDB_entry_data_s value{};
-    if (MMDB_get_value(&found.entry, &value, "country", "iso_code", nullptr) != MMDB_SUCCESS
-        || !value.has_data || value.type != MMDB_DATA_TYPE_UTF8_STRING || value.data_size != 2) {
-      return BT_NOT_FOUND;
+    const auto isoStatus = MMDB_get_value(&found.entry, &value, "country", "iso_code", nullptr);
+    if (isoStatus != MMDB_SUCCESS) {
+      return checked && isoStatus != MMDB_LOOKUP_PATH_DOES_NOT_MATCH_DATA_ERROR ? BT_IO : BT_NOT_FOUND;
     }
+    if (!value.has_data) { return BT_NOT_FOUND; }
+    if (value.type != MMDB_DATA_TYPE_UTF8_STRING || value.data_size != 2) { return checked ? BT_IO : BT_NOT_FOUND; }
     for (int i = 0; i < 2; ++i) {
       const auto c = value.utf8_string[i];
-      if (c < 'A' || c > 'Z') { return BT_NOT_FOUND; }
+      if (c < 'A' || c > 'Z') { return checked ? BT_IO : BT_NOT_FOUND; }
       result.iso3166[i] = c;
     }
     if (countryName) {
@@ -236,11 +261,20 @@ bt_status call(void* instance, std::uint32_t operation, const void* request, std
   if (!instance || !static_cast<Provider*>(instance)->started || !request || !response) { return BT_INVALID; }
   try {
     auto& provider = *static_cast<Provider*>(instance);
-    if (operation == BT_LOCATION_LOOKUP && requestSize == sizeof(bt_location_request_v1)
+    if (operation == BT_LOCATION_DATABASE_STATUS && requestSize == sizeof(bt_location_database_request_v1)
+        && responseSize == sizeof(bt_location_database_result_v1)) {
+      bt_location_database_request_v1 input{}; bt_location_database_result_v1 output{};
+      std::memcpy(&input, request, sizeof(input));
+      if (input.reserved) { return BT_INVALID; }
+      const bool ready = provider.databaseReady(); output.available = ready ? 1U : 0U;
+      std::memcpy(response, &output, sizeof(output)); return ready ? BT_OK : BT_NOT_FOUND;
+    }
+    if ((operation == BT_LOCATION_LOOKUP || operation == BT_LOCATION_LOOKUP_CHECKED) && requestSize == sizeof(bt_location_request_v1)
         && responseSize == sizeof(bt_location_result_v1)) {
       bt_location_request_v1 input{}; bt_location_result_v1 output{};
       std::memcpy(&input, request, sizeof(input));
-      const auto status = provider.lookup(input, output);
+      if (operation == BT_LOCATION_LOOKUP_CHECKED && !provider.databaseReady()) { return BT_IO; }
+      const auto status = provider.lookup(input, output, operation == BT_LOCATION_LOOKUP_CHECKED);
       std::memcpy(response, &output, sizeof(output)); return status;
     }
     if (operation == BT_LOCATION_FLAG && requestSize == sizeof(bt_flag_request_v1)

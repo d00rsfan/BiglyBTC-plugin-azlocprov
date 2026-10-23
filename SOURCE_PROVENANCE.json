@@ -2,19 +2,19 @@
   "repository": "https://github.com/d00rsfan/BiglyBTC-plugin-azlocprov",
   "local_review_commit": "7c7d5e82e26bf9e35e3fbcbc8b8f20498e4d78dd",
   "original_biglybt_commit": "cb8c6cb9bb97916cbc7e80338a017200ffc3e71f",
-  "sdk_commit": "8ff37cf27c1d1de6358b8e5e70d42fc1316c30f4",
+  "sdk_commit": "5ea3fb7391a3e5df107754b5bba95492f19efd1b",
   "ci_enabled": true,
   "scope": "location development source foundation only; no binary/catalogue release or full application/plugin parity claim",
   "files_sha256": {
     ".gitignore": "862263fa1f46c20f0d1e4dac5ffcc75abd55c08211b2c3864c5f8764b9d87793",
     "CMakeLists.txt": "f1d0d7b40f32d9d92854faf9df5783467a94c77cf94094bc7d145a105f4db78b",
     "LICENSE": "db296f2f7f35bca3a174efb0eb392b3b17bd94b341851429a3dff411b1c2fc73",
-    "README.md": "0964e33548c14b74c194645f003d56fde2e6a0577daa8fa7ae8a1a0bf7ac8402",
-    "location.cpp": "d5d1cb15640d85a847ced90206a8ef2c296baa10833591c2c40efe581f6d391f",
+    "README.md": "bfb99e45dc7c09877e2c6331d4a68aac7e5f23d4a16167a615f3da20d033d6ef",
+    "location.cpp": "6947f4eca2d7531b2eb6a0fbade054eda7dde617918184697419b2b54446e3a9",
     "tests/compatibility.py": "37cb327d1bec33d0fd05fb1cfe2e7a31d612f504bc9492929a2c7a22e4ed5bae",
     "tests/driver.cpp": "2bc3fc76f3137abe806aa10123a5592e21656f9cc534f9494301b945bbd43a04",
     "tests/fetch_fixture.py": "e1992d43ff9623ccd07469738b7f9d807eef398368386b3a84445470e6b1df99",
-    ".github/workflows/linux.yml": "2761296b0397be4e3f3a3a0a14b2f3058e29c9afecddeb9bc10f40817d699479"
+    ".github/workflows/linux.yml": "c190c269c324926cc607da541b8a8969583aa7273af7b83b276722cd3fef353d"
   },
   "ci_activation": {
     "date": "2026-10-18",
@@ -47,6 +47,32 @@
       "libarchive13t64=3.8.5-1ubuntu2.3",
       "libicu-dev=78.2-2ubuntu1",
       "libicu78=78.2-2ubuntu1"
-    ]
+    ],
+    "qualification_source_scope": "Historical standalone qualification covers pre-additive location.cpp d5d1cb15640d85a847ced90206a8ef2c296baa10833591c2c40efe581f6d391f. Additive Country operations have native integration qualification; a new standalone run is pending publication."
+  },
+  "additive_country_operations": {
+    "date": "2026-10-23",
+    "status": "Native Country integration qualified; standalone hosted run pending publication",
+    "original_biglybt_commit": "cb8c6cb9bb97916cbc7e80338a017200ffc3e71f",
+    "previous_location_sha256": "d5d1cb15640d85a847ced90206a8ef2c296baa10833591c2c40efe581f6d391f",
+    "location_sha256": "6947f4eca2d7531b2eb6a0fbade054eda7dde617918184697419b2b54446e3a9",
+    "sdk_api_header_sha256": "46785c9280413f7fde2905027c99d1bd5dcf3be06476fbd46418a446eee96eba",
+    "frozen_patch_manifest_sha256": "07001bffd9c6ece754b5f990b225fd2486bb9799e4859f75ae5ef6a9cb72118a",
+    "native_version": "0.1.0",
+    "sdk_package_version": "0.1.0",
+    "new_operations": [
+      "BT_LOCATION_DATABASE_STATUS (0x1003)",
+      "BT_LOCATION_LOOKUP_CHECKED (0x1004)"
+    ],
+    "existing_operation_layouts_unchanged": true,
+    "database_included": false,
+    "full_plugin_parity_claimed": false,
+    "validation": "Host GCC qualification passed 24 unique Statistics suites, including Country provider, binding, observed-byte and worker tests. No local compiler or test execution was started for this standalone publication; its new hosted result is not asserted here.",
+    "sdk_commit": "5ea3fb7391a3e5df107754b5bba95492f19efd1b",
+    "sdk_contract": {
+      "run_id": 40010131879,
+      "url": "https://github.com/d00rsfan/BiglyBTC/actions/runs/40010131879",
+      "conclusion": "success"
+    }
   }
 }
