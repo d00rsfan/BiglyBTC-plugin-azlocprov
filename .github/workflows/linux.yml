@@ -1,7 +1,7 @@
 name: Linux native location provider
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -37,15 +37,15 @@ jobs:
             gcc-16=16-20260322-1ubuntu1 \
             g++-16=16-20260322-1ubuntu1 \
             libstdc++-16-dev=16-20260322-1ubuntu1 \
-            cmake=4.2.3-2ubuntu2 \
-            ninja-build=1.13.2-1 \
+            cmake \
+            ninja-build \
             python3 \
             pkg-config \
-            libmaxminddb-dev=1.12.2-1build2 \
-            libarchive-dev=3.8.5-1ubuntu2.3 \
-            libarchive13t64=3.8.5-1ubuntu2.3 \
-            libicu-dev=78.2-2ubuntu1 \
-            libicu78=78.2-2ubuntu1
+            libmaxminddb-dev \
+            libarchive-dev \
+            libarchive13t64 \
+            libicu-dev \
+            libicu78 zstd binutils
           /usr/bin/g++-16 --version
           /usr/bin/cmake --version
           dpkg-query -W > "$RUNNER_TEMP/biglybtc-packages.txt"
@@ -58,9 +58,21 @@ jobs:
           /usr/bin/ctest --test-dir "$RUNNER_TEMP/biglybtc-sdk" --output-on-failure
           /usr/bin/cmake --install "$RUNNER_TEMP/biglybtc-sdk"
           /usr/bin/python3 plugin/tests/fetch_fixture.py "$RUNNER_TEMP/biglybtc-data/GeoIP2-Country-Test.mmdb"
-          /usr/bin/cmake -S plugin -B "$RUNNER_TEMP/biglybtc-plugin" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++-16 -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/biglybtc-sdk-prefix" -DBIGLYBTC_MMDB_FIXTURE="$RUNNER_TEMP/biglybtc-data/GeoIP2-Country-Test.mmdb"
+          /usr/bin/cmake -S plugin -B "$RUNNER_TEMP/biglybtc-plugin" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++-16 -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/biglybtc-sdk-prefix" -DBIGLYBTC_MMDB_FIXTURE="$RUNNER_TEMP/biglybtc-data/GeoIP2-Country-Test.mmdb" "-DBIGLYBTC_PLUGIN_BUILD_NUMBER=$GITHUB_RUN_NUMBER"
           nice -n 5 /usr/bin/cmake --build "$RUNNER_TEMP/biglybtc-plugin" -j2
           /usr/bin/ctest --test-dir "$RUNNER_TEMP/biglybtc-plugin" --output-on-failure
+      - name: Package authenticated-update input
+        working-directory: plugin
+        run: |
+          python3 ci/package_release.py "$RUNNER_TEMP/biglybtc-plugin/BiglyBTC-plugin-azlocprov.so" \
+            "$RUNNER_TEMP/biglybtc-plugin/plugin-version.txt" "$RUNNER_TEMP/azlocprov-package"
+          cp LICENSE "$RUNNER_TEMP/azlocprov-package/"
+      - name: Upload the plugin package and catalogue entry
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: azlocprov-ubuntu-26.04-amd64
+          path: ${{ runner.temp }}/azlocprov-package/
+          if-no-files-found: error
       - name: Preserve build and test evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
